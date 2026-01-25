@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Welcome | Game Sorter{% endblock %}
+
+{% block body %}
+<div class="max-w-4xl mx-auto py-12 px-4">
+    <div class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+        <h1 class="text-3xl font-bold text-slate-900 mb-4">Hello {{ controller_name }}! 👋</h1>
+        
+        <p class="text-slate-600 mb-6">Your game sorting environment is ready. This message is generated from:</p>
+        
+        <ul class="space-y-3">
+            <li class="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <span class="text-blue-500">📁</span>
+                <code class="text-sm text-slate-700 break-all">src/Controller/HomeController.php</code>
+            </li>
+            <li class="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <span class="text-purple-500">🎨</span>
+                <code class="text-sm text-slate-700 break-all">templates/home/index.html.twig</code>
+            </li>
+        </ul>
+
+        <div class="mt-8 pt-6 border-t border-slate-100">
+            <a href="{{ path('game_list_index') }}" class="inline-flex items-center justify-center px-5 py-2.5 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-colors">
+                View My Lists
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

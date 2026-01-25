@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}My Collections{% endblock %}
+
+{% block body %}
+{# 1. Attach the controller to the main container #}
+<div class="max-w-6xl mx-auto py-10 px-4" data-controller="collection-viewer">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-2xl font-bold text-slate-900">Uploaded Collections</h1>
+        {# <a href="{{ path('game_list_upload') }}" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm">
+            + New List
+        </a> #}
+    </div>
+
+    <div class="flex justify-between items-center mb-8">
+    
+    <div class="flex gap-3">
+        {# The new Duplicates Button #}
+        {# <a href="{{ path('game_list_duplicates') }}" class="px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition shadow-sm flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+            Find Duplicates
+        </a> #}
+        <a href="{{ path('game_duplicates') }}" class="px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition shadow-sm flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+            Find Duplicates
+        </a>
+
+        <a href="{{ path('game_list_upload') }}" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm">
+            + New List
+        </a>
+    </div>
+</div>
+
+    {# 2. Grid Layout: Left for list, Right for preview #}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {# LEFT COLUMN: The Lists #}
+        <div class="lg:col-span-2 grid gap-4">
+            {% for list in lists %}
+                <div class="group bg-white border border-slate-200 p-5 rounded-xl hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer relative"
+                     {# 3. Action: Clicking the card triggers the viewer #}
+                     data-action="click->collection-viewer#view"
+                     {# 4. Data: We store the game list in a hidden div or attribute #}
+                     data-collection-viewer-name-value="{{ list.name }}">
+                    
+                    <div class="flex justify-between items-center">
+                        <div>
+                            {# Clicking the name still goes to the show page #}
+                            <a href="{{ path('game_list_show', {'id': list.id}) }}" 
+                               class="text-lg font-semibold text-slate-800 group-hover:text-indigo-600 relative z-10"
+                               data-action="click->collection-viewer#prevent">
+                                {{ list.name }}
+                            </a>
+                            <p class="text-sm text-slate-500 mt-1">
+                                {{ list.games|length }} games • {{ list.uploadedAt|date('M d, Y') }}
+                            </p>
+                        </div>
+
+                        {# The Game Data (hidden, will be moved to the right panel by JS) #}
+                        <template data-collection-viewer-target="gameData">
+                            <ul class="divide-y divide-slate-100">
+                                {% for game in list.games %}
+                                    <li class="py-2 text-slate-700">{{ game }}</li>
+                                {% endfor %}
+                            </ul>
+                        </template>
+
+                        <form method="post" class="relative z-10"
+                            action="{{ path('game_list_delete', { id: list.id }) }}"
+                            onsubmit="return confirm('Delete this list?');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete_game_list_' ~ list.id) }}">
+                            <button class="px-3 py-1 text-sm text-white bg-red-600 rounded hover:bg-red-700"
+                                    data-action="click->collection-viewer#prevent">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {# RIGHT COLUMN: The Detail Panel #}
+        <div class="hidden lg:block">
+            <div class="sticky top-10 bg-white border border-slate-200 rounded-xl p-6 shadow-sm hidden" 
+                 data-collection-viewer-target="panel">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-xl font-bold text-slate-900" data-collection-viewer-target="panelTitle"></h2>
+                    <button data-action="click->collection-viewer#close" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="overflow-y-auto max-h-[70vh]" data-collection-viewer-target="panelContent">
+                    {# Content injected here #}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

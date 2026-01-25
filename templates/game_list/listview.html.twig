@@ -1,0 +1,14 @@
+<h1>{{ gameList.name }}</h1>
+<table>
+    <thead>
+        <tr><th>Name</th><th>Tag</th></tr>
+    </thead>
+    <tbody>
+    {% for entry in entries %}
+        <tr>
+            <td>{{ entry.name }}</td>
+            <td>{{ entry.tag }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
