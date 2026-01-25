@@ -2,19 +2,7 @@
 
 {% block body %}
 <div class="max-w-5xl mx-auto py-10 px-4">
-    {% for dup in duplicates %}
-    <div class="border p-4 mb-2 rounded">
-        <h3 class="font-bold">{{ dup.name }} ({{ dup.total }})</h3>
-        <a href="{{ path('game_duplicate_show', {
-            name: dup.name,
-            lists: listIds
-        }) }}" class="text-blue-600 underline">
-            View entries
-        </a>
-    </div>
-{% endfor %}
-
-    {# <h1 class="text-3xl font-bold text-slate-900 mb-8">Duplicate Detection</h1>
+    <h1 class="text-3xl font-bold text-slate-900 mb-8">Duplicate Detection</h1>
 
     <div class="space-y-6">
         {% for normalizedName, occurrences in duplicates %}
@@ -58,6 +46,6 @@
                 <p class="text-green-600 font-medium">No duplicates found! Your library is clean.</p>
             </div>
         {% endfor %}
-    </div> #}
+    </div>
 </div>
 {% endblock %}

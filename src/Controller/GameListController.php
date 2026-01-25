@@ -12,12 +12,11 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Service\GameMatcher;
 use App\Repository\GameListRepository;
-use App\Repository\GameEntryRepository;
 
 class GameListController extends AbstractController
 {
 
-    public function __construct(protected GameMatcher $matcher, protected GameEntryRepository $gameEntryRepository) 
+    public function __construct(protected GameMatcher $matcher) 
     {
 
     }
@@ -113,64 +112,29 @@ class GameListController extends AbstractController
         return $this->redirectToRoute('game_list_index');
     }
 
-    // #[Route('/collections/duplicates', name: 'game_list_duplicates')]
-    // public function duplicates(GameListRepository $repo, GameMatcher $matcher)
-    // {
-    //     $allLists = $repo->findAll();
-    //     $duplicateMap = [];
-
-    //     foreach ($allLists as $list) {
-    //         foreach ($list->getGames() as $originalName) {
-    //             $normalized = $matcher->normalize($originalName);
-                
-    //             $duplicateMap[$normalized][] = [
-    //                 'original' => $originalName,
-    //                 'listName' => $list->getName(),
-    //                 'listId' => $list->getId()
-    //             ];
-    //         }
-    //     }
-
-    //     // Filter to keep only those that appear more than once
-    //     $duplicates = array_filter($duplicateMap, fn($occurences) => count($occurences) > 1);
-
-    //     return $this->render('game_list/duplicates.html.twig', [
-    //         'duplicates' => $duplicates
-    //     ]);
-    // }
-
-    #[Route('/duplicates', name: 'game_duplicates')]
-    public function duplicates(Request $request): Response
+    #[Route('/collections/duplicates', name: 'game_list_duplicates')]
+    public function duplicates(GameListRepository $repo, GameMatcher $matcher)
     {
-        $listIds = $request->query->all('lists');
+        $allLists = $repo->findAll();
+        $duplicateMap = [];
 
-        if (!$listIds) {
-            return $this->render('game_list/duplicates.html.twig', [
-                'duplicates' => [],
-            ]);
+        foreach ($allLists as $list) {
+            foreach ($list->getGames() as $originalName) {
+                $normalized = $matcher->normalize($originalName);
+                
+                $duplicateMap[$normalized][] = [
+                    'original' => $originalName,
+                    'listName' => $list->getName(),
+                    'listId' => $list->getId()
+                ];
+            }
         }
 
-        $duplicates = $this->gameEntryRepository->findDuplicatesInLists($listIds);
+        // Filter to keep only those that appear more than once
+        $duplicates = array_filter($duplicateMap, fn($occurences) => count($occurences) > 1);
 
         return $this->render('game_list/duplicates.html.twig', [
-            'duplicates' => $duplicates,
-            'listIds' => $listIds,
-        ]);
-    }
-
-    #[Route('/search', name: 'game_search')]
-    public function search(Request $request): Response
-    {
-        $query = $request->query->get('q');
-        $listIds = $request->query->all('lists');
-
-        $results = [];
-        if ($query && $listIds) {
-            $results = $this->gameEntryRepository->searchInLists($query, $listIds);
-        }
-
-        return $this->render('game_list/search.html.twig', [
-            'results' => $results,
+            'duplicates' => $duplicates
         ]);
     }
 }
