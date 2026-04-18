@@ -12,7 +12,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Service\GameMatcher;
 use App\Repository\GameListRepository;
-use App\Repository\GameEntryRepository;
 
 class GameListController extends AbstractController
 {
