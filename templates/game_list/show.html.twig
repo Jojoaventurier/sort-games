@@ -2,56 +2,153 @@
 
 {% block title %}{{ gameList.name }}{% endblock %}
 
+{% macro render_tag(tag) %}
+    {% set tag = tag|upper %}
+    {% set colors = {
+        'ISO':    'bg-blue-50 text-blue-600 border-blue-100',
+        'ZIP':    'bg-amber-50 text-amber-600 border-amber-100',
+        'RAR':    'bg-rose-50 text-rose-600 border-rose-100',
+        'FOLDER': 'bg-emerald-50 text-emerald-600 border-emerald-100'
+    } %}
+    {% set style = colors[tag] ?? 'bg-slate-50 text-slate-600 border-slate-100' %}
+    <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase border {{ style }}">
+        {{ tag }}
+    </span>
+{% endmacro %}
+
+{% import _self as tags %}
+
 {% block body %}
-<div class="max-w-5xl mx-auto py-10 px-4">
-    <nav class="mb-6">
+<div class="max-w-6xl mx-auto py-10 px-4">
+    <nav class="mb-6 flex justify-between items-center">
         <a href="{{ path('game_list_index') }}" class="text-sm text-slate-500 hover:text-indigo-600 flex items-center gap-1">
             ← Back to collections
         </a>
+        
+        <form method="post" action="{{ path('game_list_delete', { id: gameList.id }) }}" onsubmit="return confirm('Delete list?');">
+            <input type="hidden" name="_token" value="{{ csrf_token('delete_game_list_' ~ gameList.id) }}">
+            <button class="text-xs px-3 py-1.5 text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
+                Delete List
+            </button>
+        </form>
     </nav>
 
-    <form method="post"
-      action="{{ path('game_list_delete', { id: gameList.id }) }}"
-      onsubmit="return confirm('Delete this list and all its entries?');"
-      class="mb-4">
-    <input type="hidden" name="_token"
-           value="{{ csrf_token('delete_game_list_' ~ gameList.id) }}">
-
-    <button class="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700">
-        Delete this list
-    </button>
-</form>
-
-
     <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-            <h1 class="text-xl font-bold text-slate-800">{{ gameList.name }}</h1>
+        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800">{{ gameList.name }}</h1>
+                <p class="text-xs text-slate-400 mt-1">Total: <span id="visible-count">{{ entries|length }}</span> / {{ entries|length }} items</p>
+            </div>
+            
+            <div class="relative w-full md:w-72">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </span>
+                <input type="text" id="gameSearch" placeholder="Filter games..." 
+                    class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+            </div>
         </div>
 
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50/50">
-                    <th class="px-6 py-3 font-semibold">Game Name</th>
-                    <th class="px-6 py-3 font-semibold text-right">Tag</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                {% for entry in entries %}
-                <tr class="hover:bg-slate-50/80 transition-colors">
-                    <td class="px-6 py-4 text-slate-700 font-medium">{{ entry.name }}</td>
-                    <td class="px-6 py-4 text-right">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
-                            {{ entry.tag }}
-                        </span>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="2" class="px-6 py-10 text-center text-slate-400 italic">No games found in this list.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="gameTable">
+                <thead>
+                    <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50/50 border-b border-slate-100">
+                        {# Clickable headers for sorting #}
+                        <th class="px-6 py-4 font-semibold cursor-pointer hover:text-indigo-600 select-none sort-header" data-sort="0">
+                            Game Name <span class="sort-icon ml-1 text-slate-300">↕</span>
+                        </th>
+                        <th class="px-4 py-4 font-semibold cursor-pointer hover:text-indigo-600 select-none sort-header" data-sort="1">
+                            Size <span class="sort-icon ml-1 text-slate-300">↕</span>
+                        </th>
+                        <th class="px-4 py-4 font-semibold cursor-pointer hover:text-indigo-600 select-none sort-header" data-sort="2">
+                            Modified <span class="sort-icon ml-1 text-slate-300">↕</span>
+                        </th>
+                        <th class="px-6 py-4 font-semibold text-right">Tag</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100" id="tableBody">
+                    {% for entry in entries %}
+                    <tr class="game-row hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-4 text-slate-700 font-medium text-sm">
+                            <span class="truncate block max-w-md search-target" title="{{ entry.name }}">
+                                {{ entry.name }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-4 text-sm text-slate-500 tabular-nums">
+                            {{ entry.fileSize ?? 'N/A' }}
+                        </td>
+                        <td class="px-4 py-4 text-sm text-slate-400">
+                            {{ entry.fileDate ?? 'N/A' }}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            {{ tags.render_tag(entry.tag) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('gameSearch');
+    const tableBody = document.getElementById('tableBody');
+    const rows = Array.from(tableBody.querySelectorAll('.game-row'));
+    const countDisplay = document.getElementById('visible-count');
+    const headers = document.querySelectorAll('.sort-header');
+
+    // --- SEARCH FILTER ---
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const name = row.querySelector('.search-target').textContent.toLowerCase();
+            const isVisible = name.includes(query);
+            row.style.display = isVisible ? "" : "none";
+            if (isVisible) visibleCount++;
+        });
+
+        countDisplay.textContent = visibleCount;
+    });
+
+    // --- SORTING LOGIC ---
+    let currentSortColumn = -1;
+    let isAscending = true;
+
+    headers.forEach(header => {
+        header.addEventListener('click', () => {
+            const columnIndex = parseInt(header.getAttribute('data-sort'));
+            
+            // Toggle direction if clicking same column
+            if (currentSortColumn === columnIndex) {
+                isAscending = !isAscending;
+            } else {
+                isAscending = true;
+                currentSortColumn = columnIndex;
+            }
+
+            // Update UI icons
+            headers.forEach(h => h.querySelector('.sort-icon').textContent = '↕');
+            header.querySelector('.sort-icon').textContent = isAscending ? '↑' : '↓';
+
+            // Sort rows
+            const sortedRows = rows.sort((a, b) => {
+                const cellA = a.querySelectorAll('td')[columnIndex].textContent.trim();
+                const cellB = b.querySelectorAll('td')[columnIndex].textContent.trim();
+
+                // Simple string comparison (works for name and date YYYY-MM-DD)
+                return isAscending 
+                    ? cellA.localeCompare(cellB, undefined, {numeric: true, sensitivity: 'base'})
+                    : cellB.localeCompare(cellA, undefined, {numeric: true, sensitivity: 'base'});
+            });
+
+            // Re-append rows in new order
+            sortedRows.forEach(row => tableBody.appendChild(row));
+        });
+    });
+});
+</script>
 {% endblock %}

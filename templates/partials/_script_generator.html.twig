@@ -1,0 +1,237 @@
+{# templates/game_list/_script_generator.html.twig #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+    {# LEFT: Configuration #}
+    <div class="space-y-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                </svg>
+                Scanner Script Generator
+            </h2>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Target Drive Letter</label>
+                    <input type="text" id="driveLetter" value="{{ defaultDrive|default('F') }}" class="w-full rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Folders to Scan</label>
+                    <div id="folderContainer" class="space-y-2 mb-2">
+                        <div class="flex gap-2 folder-input">
+                            <input type="text" value="PLAY" class="flex-1 rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
+                            <button type="button" onclick="removeFolder(this)" class="p-2 text-slate-400 hover:text-red-500 transition-colors">✕</button>
+                        </div>
+                        <div class="flex gap-2 folder-input">
+                            <input type="text" value="Listed" class="flex-1 rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
+                            <button type="button" onclick="removeFolder(this)" class="p-2 text-slate-400 hover:text-red-500 transition-colors">✕</button>
+                        </div>
+                    </div>
+                    <button type="button" onclick="addFolder()" class="text-xs font-bold text-indigo-600 hover:text-indigo-700">+ Add folder</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Output File</label>
+                        <input type="text" id="fileName" value="game_list.txt" class="w-full rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Save Path</label>
+                        <input type="text" id="savePath" value="F:\" class="w-full rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# --- EXPLANATION NOTE SECTION --- #}
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+            <h3 class="text-amber-800 font-bold text-sm mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                Comment exécuter le script ?
+            </h3>
+            <div class="text-xs text-amber-900/80 space-y-4 leading-relaxed">
+                <div>
+                    <p class="font-bold mb-1">Option 1 : La méthode rapide (Recommandée)</p>
+                    <p>Cette commande autorise l'exécution uniquement pour la fenêtre PowerShell actuelle. Copiez cette ligne, faites Entrée, puis lancez votre script :</p>
+                    <code class="block bg-amber-100 p-2 mt-2 rounded border border-amber-200 text-amber-900 select-all font-mono">Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code>
+                </div>
+                
+                <div>
+                    <p class="font-bold mb-1">Option 2 : Débloquer le fichier</p>
+                    <p>Windows bloque les fichiers internet. Vous pouvez autoriser ce fichier spécifique :</p>
+                    <code class="block bg-amber-100 p-2 mt-2 rounded border border-amber-200 text-amber-900 font-mono italic">Unblock-File -Path "C:\chemin\vers\votre\script.ps1"</code>
+                </div>
+
+                <div class="pt-2 border-t border-amber-200">
+                    <p class="italic"><strong>Pourquoi cela arrive ?</strong> Par défaut, Windows n'autorise pas les scripts sans signature numérique officielle. Comme ce script est généré dynamiquement par votre application, il est considéré comme "non signé".</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# RIGHT: Preview #}
+    <div class="flex flex-col h-full">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">PowerShell Preview</span>
+            <button type="button" onclick="copyScript()" class="text-xs font-bold text-indigo-600 hover:underline">Copier le code</button>
+        </div>
+        
+        <pre id="scriptPreview" class="flex-1 bg-slate-900 text-indigo-300 p-6 rounded-2xl font-mono text-xs overflow-x-auto border border-slate-800 shadow-inner leading-relaxed"></pre>
+
+        <button type="button" onclick="downloadScript()" class="mt-4 w-full py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            Télécharger .ps1
+        </button>
+    </div>
+</div>
+
+<script>
+    function addFolder() {
+        const div = document.createElement('div');
+        div.className = 'flex gap-2 folder-input';
+        div.innerHTML = `
+            <input type="text" class="flex-1 rounded-lg border-slate-200 text-sm focus:ring-indigo-500" placeholder="Folder name">
+            <button type="button" onclick="removeFolder(this)" class="p-2 text-slate-400 hover:text-red-500 transition-colors">✕</button>
+        `;
+        document.getElementById('folderContainer').appendChild(div);
+        updateScript();
+    }
+
+    function removeFolder(btn) {
+        const container = document.getElementById('folderContainer');
+        if(container.children.length > 1) {
+            btn.parentElement.remove();
+            updateScript();
+        }
+    }
+
+    function updateScript() {
+        const drive = document.getElementById('driveLetter').value || 'F';
+        const fileName = document.getElementById('fileName').value || 'game_list.txt';
+        const savePath = document.getElementById('savePath').value || 'F:';
+        
+        // Clean up the trailing slash for the drive/path
+        const formattedRoot = drive.endsWith(':') ? `${drive}\\` : `${drive}:\\`;
+        const formattedOutput = `${savePath.replace(/\/$/, "")}\\${fileName}`;
+
+        const folders = Array.from(document.querySelectorAll('.folder-input input'))
+            .map(i => i.value.trim())
+            .filter(v => v !== '')
+            .map(v => `"${v}"`)
+            .join(', ');
+
+        const scriptTemplate = `# =========================================================
+# GAME LIBRARY SCANNER (v2 - Performance Edition)
+# =========================================================
+
+# -------------------------------
+# CONFIG (Generated via Symfony)
+# -------------------------------
+$RootPath = "${formattedRoot}"
+$FoldersToScan = @(${folders})
+$Output = "${formattedOutput}"
+
+# -------------------------------
+# INTERNAL STORAGE
+# -------------------------------
+$results = New-Object System.Collections.Generic.List[string]
+$multiPartPattern = '\\.part\\d+$|\\.r\\d+$|\\.z\\d+$'
+
+# -------------------------------
+# HELPER FUNCTION
+# -------------------------------
+function Get-SizeAndDate {
+    param ($Item)
+    $date = $Item.LastWriteTime.ToString("yyyy-MM-dd")
+    
+    if ($Item.PSIsContainer) {
+        $sizeBytes = (Get-ChildItem $Item.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+        if ($null -eq $sizeBytes) { $sizeBytes = 0 }
+    } else {
+        $sizeBytes = $Item.Length
+    }
+    
+    if ($sizeBytes -gt 1GB) {
+        $sizeStr = "{0:N2} GB" -f ($sizeBytes / 1GB)
+    } else {
+        $sizeStr = "{0:N2} MB" -f ($sizeBytes / 1MB)
+    }
+    return "[$date | $sizeStr]"
+}
+
+function Add-GameEntry {
+    param ($Item, [string]$Type)
+    $metadata = Get-SizeAndDate -Item $Item
+    # Keep your pipe-separated format for Symfony compatibility
+    $results.Add("$($Item.Name) | $($Type) | $metadata")
+}
+
+# -------------------------------
+# 1️⃣ SCAN ROOT
+# -------------------------------
+Write-Host "Scanning Root: $RootPath..." -ForegroundColor Cyan
+Get-ChildItem -Path $RootPath -Force | ForEach-Object {
+    if ($_.PSIsContainer) {
+        Add-GameEntry -Item $_ -Type "FOLDER"
+    } else {
+        $ext = $_.Extension.ToLower()
+        if ($_.BaseName -match $multiPartPattern) { return }
+        if (".iso", ".rar", ".zip", ".7z" -contains $ext) {
+            Add-GameEntry -Item $_ -Type ($ext.Trim('.').ToUpper())
+        }
+    }
+}
+
+# -------------------------------
+# 2️⃣ SCAN SELECTED FOLDERS
+# -------------------------------
+foreach ($folderName in $FoldersToScan) {
+    Write-Host "Searching for folder: $folderName..." -ForegroundColor Yellow
+    Get-ChildItem -Path $RootPath -Directory -Force | Where-Object { $_.Name -eq $folderName } | ForEach-Object {
+        Get-ChildItem -Path $_.FullName -Force | ForEach-Object {
+            if ($_.PSIsContainer) {
+                Add-GameEntry -Item $_ -Type "FOLDER"
+            } else {
+                $ext = $_.Extension.ToLower()
+                if ($_.BaseName -match $multiPartPattern) { return }
+                if (".iso", ".rar", ".zip", ".7z" -contains $ext) {
+                    Add-GameEntry -Item $_ -Type ($ext.Trim('.').ToUpper())
+                }
+            }
+        }
+    }
+}
+
+# -------------------------------
+# 3️⃣ OUTPUT
+# -------------------------------
+$results | Sort-Object | Out-File $Output -Encoding UTF8
+Write-Host "Done! Found $($results.Count) items." -ForegroundColor Green
+Write-Host "Results saved to: $Output"`;
+
+        document.getElementById('scriptPreview').textContent = scriptTemplate;
+    }
+
+    // Initialize listeners
+    document.addEventListener('input', (e) => {
+        if (e.target.id === 'driveLetter' || e.target.id === 'fileName' || e.target.id === 'savePath' || e.target.closest('.folder-input')) {
+            updateScript();
+        }
+    });
+
+    function downloadScript() {
+        const blob = new Blob([document.getElementById('scriptPreview').textContent], { type: 'text/plain' });
+        const anchor = document.createElement('a');
+        anchor.download = 'scan_v2.ps1';
+        anchor.href = window.URL.createObjectURL(blob);
+        anchor.click();
+    }
+
+    function copyScript() {
+        navigator.clipboard.writeText(document.getElementById('scriptPreview').textContent);
+        alert('Script copied!');
+    }
+
+    updateScript();
+</script>

@@ -2,95 +2,172 @@
 
 {% block title %}My Collections{% endblock %}
 
-{% block body %}
-{# 1. Attach the controller to the main container #}
-<div class="max-w-6xl mx-auto py-10 px-4" data-controller="collection-viewer">
-    <div class="flex justify-between items-center mb-8">
-        <h1 class="text-2xl font-bold text-slate-900">Uploaded Collections</h1>
-        {# <a href="{{ path('game_list_upload') }}" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm">
-            + New List
-        </a> #}
-    </div>
-
-    <div class="flex justify-between items-center mb-8">
+{# Helper to generate dynamic tag colors #}
+{% macro render_tag(tag) %}
+    {% set tag = tag|upper %}
+    {% set colors = {
+        'ISO':    'bg-blue-50 text-blue-600 border-blue-100',
+        'ZIP':    'bg-amber-50 text-amber-600 border-amber-100',
+        'RAR':    'bg-rose-50 text-rose-600 border-rose-100',
+        'FOLDER': 'bg-emerald-50 text-emerald-600 border-emerald-100'
+    } %}
+    {% set style = colors[tag] ?? 'bg-slate-50 text-slate-600 border-slate-100' %}
     
-    <div class="flex gap-3">
-        {# The new Duplicates Button #}
-        <a href="{{ path('game_list_duplicates') }}" class="px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition shadow-sm flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-            Find Duplicates
-        </a>
+    <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase border {{ style }}">
+        {{ tag }}
+    </span>
+{% endmacro %}
 
-        <a href="{{ path('game_list_upload') }}" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm">
-            + New List
-        </a>
+{% import _self as tags %}
+
+{% block body %}
+<div class="max-w-7xl mx-auto py-10 px-4">
+    {# Header Section #}
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div class="flex gap-3">
+            {# The New Matrix Button #}
+            <a href="{{ path('game_list_matrix') }}" class="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                Compare Drives (Matrix)
+            </a>
+
+            <a href="{{ path('game_library_overview') }}" class="px-4 py-2 bg-yellow-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition shadow-sm flex items-center gap-2">
+                Library
+            </a>
+
+            <a href="{{ path('game_list_duplicates') }}" class="px-4 py-2 bg-orange-600 border border-slate-200 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition shadow-sm flex items-center gap-2">
+                Find Duplicates
+            </a>
+
+            <a href="{{ path('game_list_upload') }}" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition shadow-sm flex items-center gap-2">
+                + New List
+            </a>
+        </div>
     </div>
-</div>
 
-    {# 2. Grid Layout: Left for list, Right for preview #}
+    {# Main Content Grid #}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {# LEFT COLUMN: The Lists #}
-        <div class="lg:col-span-2 grid gap-4">
+        {# LEFT COLUMN: The Cards #}
+        <div class="lg:col-span-2 space-y-4">
             {% for list in lists %}
                 <div class="group bg-white border border-slate-200 p-5 rounded-xl hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer relative"
-                     {# 3. Action: Clicking the card triggers the viewer #}
-                     data-action="click->collection-viewer#view"
-                     {# 4. Data: We store the game list in a hidden div or attribute #}
-                     data-collection-viewer-name-value="{{ list.name }}">
+                     onclick="updatePreview('{{ list.name|escape('js') }}', this)">
                     
                     <div class="flex justify-between items-center">
-                        <div>
-                            {# Clicking the name still goes to the show page #}
+                        <div class="pr-4">
                             <a href="{{ path('game_list_show', {'id': list.id}) }}" 
-                               class="text-lg font-semibold text-slate-800 group-hover:text-indigo-600 relative z-10"
-                               data-action="click->collection-viewer#prevent">
-                                {{ list.name }}
+                               class="text-lg font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors"
+                               onclick="event.stopPropagation();">
+                                 {{ list.name }}
                             </a>
-                            <p class="text-sm text-slate-500 mt-1">
-                                {{ list.games|length }} games • {{ list.uploadedAt|date('M d, Y') }}
-                            </p>
+                            <div class="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                    {{ list.games|length }} items
+                                </span>
+                                <span>•</span>
+                                <span>{{ list.uploadedAt|date('M d, Y') }}</span>
+                            </div>
                         </div>
 
-                        {# The Game Data (hidden, will be moved to the right panel by JS) #}
-                        <template data-collection-viewer-target="gameData">
+                        {# Hidden Data Store for JS Preview #}
+                        <div class="hidden preview-data-source">
                             <ul class="divide-y divide-slate-100">
                                 {% for game in list.games %}
-                                    <li class="py-2 text-slate-700">{{ game }}</li>
+                                    <li class="py-3">
+                                        <div class="text-sm font-medium text-slate-800 truncate" title="{{ game.name }}">{{ game.name }}</div>
+                                        <div class="flex items-center gap-3 mt-1.5">
+                                            {{ tags.render_tag(game.tag) }}
+                                            <span class="text-[11px] font-medium text-slate-500 tabular-nums">{{ game.fileSize ?? 'N/A' }}</span>
+                                            <span class="text-[11px] text-slate-400">{{ game.fileDate ?? 'N/A' }}</span>
+                                        </div>
+                                    </li>
                                 {% endfor %}
                             </ul>
-                        </template>
+                        </div>
 
-                        <form method="post" class="relative z-10"
-                            action="{{ path('game_list_delete', { id: list.id }) }}"
-                            onsubmit="return confirm('Delete this list?');">
-                            <input type="hidden" name="_token" value="{{ csrf_token('delete_game_list_' ~ list.id) }}">
-                            <button class="px-3 py-1 text-sm text-white bg-red-600 rounded hover:bg-red-700"
-                                    data-action="click->collection-viewer#prevent">
-                                Delete
-                            </button>
-                        </form>
+                        <div class="flex items-center gap-4">
+                            <form method="post" action="{{ path('game_list_delete', { id: list.id }) }}" 
+                                  onsubmit="return confirm('Delete this list?');" 
+                                  onclick="event.stopPropagation();">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete_game_list_' ~ list.id) }}">
+                                <button class="text-xs text-slate-400 hover:text-red-600 transition-colors font-medium">
+                                    Delete
+                                </button>
+                            </form>
+                            <svg class="w-5 h-5 text-slate-300 group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </div>
                     </div>
+                </div>
+            {% else %}
+                <div class="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <p class="text-slate-500">No collections uploaded yet.</p>
                 </div>
             {% endfor %}
         </div>
 
-        {# RIGHT COLUMN: The Detail Panel #}
+        {# RIGHT COLUMN: Detail Panel #}
         <div class="hidden lg:block">
-            <div class="sticky top-10 bg-white border border-slate-200 rounded-xl p-6 shadow-sm hidden" 
-                 data-collection-viewer-target="panel">
-                <div class="flex justify-between items-start mb-4">
-                    <h2 class="text-xl font-bold text-slate-900" data-collection-viewer-target="panelTitle"></h2>
-                    <button data-action="click->collection-viewer#close" class="text-slate-400 hover:text-slate-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            <div id="detail-panel" class="sticky top-10 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden hidden transition-all">
+                <div class="px-6 py-4 border-b border-slate-100 bg-white flex justify-between items-center">
+                    <h2 id="panel-title" class="font-bold text-slate-800 truncate mr-4"></h2>
+                    <button onclick="closePreview()" class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
-                <div class="overflow-y-auto max-h-[70vh]" data-collection-viewer-target="panelContent">
-                    {# Content injected here #}
+                <div id="panel-content" class="p-6 overflow-y-auto max-h-[calc(100vh-250px)] scrollbar-thin scrollbar-thumb-slate-200">
+                    {# Injected by JS #}
+                </div>
+                <div class="p-4 bg-slate-50 border-t border-slate-100">
+                    <p class="text-[10px] text-center text-slate-400 uppercase tracking-widest font-bold">Quick View Mode</p>
                 </div>
             </div>
+            
+            <div id="panel-placeholder" class="sticky top-10 border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center">
+                <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                </div>
+                <p class="text-sm text-slate-400 font-medium">Select a collection to see contents.</p>
+            </div>
         </div>
-
     </div>
+
+
+
+    <hr class="my-12 border-slate-200">
+
+    {# Part 2: Include the Partial #}
+    {% include 'partials/_script_generator.html.twig' with {
+        'defaultDrive': 'D'
+    } %}
 </div>
+</div>
+
+<script>
+    function updatePreview(name, cardElement) {
+        const panel = document.getElementById('detail-panel');
+        const placeholder = document.getElementById('panel-placeholder');
+        const titleContainer = document.getElementById('panel-title');
+        const contentContainer = document.getElementById('panel-content');
+        const dataSource = cardElement.querySelector('.preview-data-source');
+
+        if (!dataSource) return;
+
+        titleContainer.innerText = name;
+        contentContainer.innerHTML = dataSource.innerHTML;
+
+        placeholder.classList.add('hidden');
+        panel.classList.remove('hidden');
+        
+        document.querySelectorAll('.group').forEach(c => c.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50'));
+        cardElement.classList.add('border-indigo-400', 'ring-2', 'ring-indigo-50');
+    }
+
+    function closePreview() {
+        document.getElementById('detail-panel').classList.add('hidden');
+        document.getElementById('panel-placeholder').classList.remove('hidden');
+        document.querySelectorAll('.group').forEach(c => c.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50'));
+    }
+</script>
 {% endblock %}

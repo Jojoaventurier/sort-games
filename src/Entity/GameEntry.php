@@ -18,23 +18,43 @@ class GameEntry
     private ?GameList $gameList = null;
 
     #[ORM\Column(type:"string", length:255)]
-    private string $name; // raw name from file
+    private ?string $name = null; // raw name from file
 
     #[ORM\Column(length: 255, nullable:true)]
-    private ?string $normalizedName;
+    private ?string $normalizedName = null;
 
     #[ORM\Column(length: 255)]
-    private string $fuzzyName;
+    private ?string $fuzzyName = null;
 
 
     #[ORM\Column(type:"string", length:50)]
-    private string $tag; // ISO, RAR, ZIP, FOLDER
+    private ?string $tag = null; // ISO, RAR, ZIP, FOLDER
 
     #[ORM\Column(type:"datetime")]
     private \DateTimeInterface $createdAt;
 
     #[ORM\Column(type:"string", length:255, nullable:true)]
     private ?string $version = null; // optional: parsed later
+
+    #[ORM\Column(type: "string", length: 50, nullable: true)]
+    private ?string $fileSize = null; // Stores "1.25 GB"
+
+    #[ORM\Column(type: "string", length: 50, nullable: true)]
+    private ?string $fileDate = null; // Stores "2024-05-20"
+
+    // --- Add these Getters and Setters ---
+
+    public function getFileSize(): ?string { return $this->fileSize; }
+    public function setFileSize(?string $fileSize): self { 
+        $this->fileSize = $fileSize; 
+        return $this; 
+    }
+
+    public function getFileDate(): ?string { return $this->fileDate; }
+    public function setFileDate(?string $fileDate): self { 
+        $this->fileDate = $fileDate; 
+        return $this; 
+    }
 
     // --- getters and setters ---
 
